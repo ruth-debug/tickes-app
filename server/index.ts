@@ -22,8 +22,6 @@ app.use((_, res, next) => {
 
 app.get(APIPath, (req, res) => {
 
-  console.log('server running', req.query);
-
   const page: number = Number(req.query.page) || 1;
   const search = req.query.search?.toString() ?? "";
   const limit: number =  Number(req.query.limit) || PAGE_SIZE;

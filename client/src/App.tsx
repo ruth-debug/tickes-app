@@ -120,17 +120,15 @@ export class App extends React.PureComponent<{}> {
 			.filter((t) => (t.title.toLowerCase() + t.content.toLowerCase()).includes(this.state.options.search?.toLowerCase() ?? ''));
 
 		const handleRemoveItem = (ticket: Ticket) => {
-			return filteredTickets.filter(item => item.id !== ticket.id);
+			return this.state.favoriteTickes.filter(item => item.id !== ticket.id);
 			};
 		const handleAddItem = (ticket: Ticket) => {
-			return [...this.state.favoriteTickes, ticket];
+			return [ ticket, ...handleRemoveItem(ticket)];
 			};	
 		const toggleFavorite = (ticket: Ticket) => {
 			
 		const favorites = favorite? handleRemoveItem(ticket): handleAddItem(ticket);
-		console.log(favorite);
-        console.log(favorites);
-        this.setState((prev)=> ({...prev, favoriteTickes: favorites}))
+		this.setState((prev)=> ({...prev, favoriteTickes: favorites}))
 		}	
 
 		return (<ul className='tickets'>
