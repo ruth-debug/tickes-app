@@ -3,6 +3,8 @@ import './App.scss';
 import {createApiClient, FilterProps, Ticket, TicketsResult} from './api';
 import ReactPaginate from 'react-paginate';
 import TicketsComponent from './components/TicketComponent';
+import SortComponent from './components/SortComponent';
+import PaginateComponent from './components/PaginateComponeent';
 export type AppState = {
     offset: number,
 	ticketsResult?: TicketsResult,
@@ -11,7 +13,7 @@ export type AppState = {
 }
 
 const api = createApiClient();
-export class App extends React.PureComponent<{}> {
+export class App extends React.PureComponent<{},AppState> {
     
 	state: AppState = {
 		offset: 0,
@@ -36,113 +38,13 @@ export class App extends React.PureComponent<{}> {
 		);
 	}
 
-	sortItems = (currentSort : "userEmail" | "creationTime" |  "title") => {
-		// Invoke when user click to request another page.
-		const handleSelect= async (event: React.ChangeEvent<{ value: unknown }>) => {
-			var value = (event.target as any).value as ("userEmail" | "creationTime" |  "title");
-
-			let prevOptions =this.state.options;
-			this.setState((prev)=> ({ ...prev,
-				options: {
-					...prevOptions,
-					sortBy: value
-				}
-			}));
-
-		   const result = await api.getTickets({...this.state.options, sortBy: value ??  "creationTime" })
-		   this.setState( (prev) =>  ({
-			  ...prev ,ticketsResult: result
-		   })
-		   );
-		  }
-
-		return (
-			<div>
-				<h6 className='content'>Sort By</h6>
-				<select className="form-select" aria-labelledby="dropdownMenuButton" onChange={handleSelect}  value={currentSort}>
-					<option value="userEmail">Email</option>
-					<option value="creationTime">Date</option>
-					<option value="title">Title</option>				
-				</select>
-			</div>
-		)
-	}
-	
-	 paginatedItems = ( itemsPerPage: number, ticketsResult: TicketsResult, itemOffset: number ) => {
-		const endOffset = itemOffset + itemsPerPage;
-		console.log(`Loading items from ${itemOffset} to ${endOffset} count pages is ${ticketsResult.pages}`);
-		const pageCount = ticketsResult.pages
-	  
-		// Invoke when user click to request another page.
-		const handlePageClick = async (event: { selected: number; }) => {
-		  const newOffset = (event.selected * itemsPerPage) % ticketsResult.total;
-		  console.log(
-			`User requested page number ${event.selected}, which is offset ${newOffset}`
-		  );
-		  this.setState( (prev) =>  ({
-			...prev ,offset: newOffset
-		 }));
-		 const result = await api.getTickets({...this.state.options, page: event.selected + 1})
-		 this.setState( (prev) =>  ({
-			...prev ,ticketsResult: result
-		 })
-		 );
-		}
-	  
-		return (
-			<nav aria-label="Page navigation tickets" className="mt-4 ">
-
-			<ReactPaginate
-			  breakLabel="..."
-			  nextLabel="next >"
-			  onPageChange={handlePageClick}
-			  pageRangeDisplayed={5}
-			  pageCount={pageCount}
-			  previousLabel="< previous"
-			  forcePage={ticketsResult.page - 1}
-			  renderOnZeroPageCount={undefined}
-			  containerClassName="pagination justify-content-center"
-            pageClassName="page-item"
-            pageLinkClassName="page-link"
-            previousClassName="page-item"
-            previousLinkClassName="page-link"
-            nextClassName="page-item"
-            nextLinkClassName="page-link"
-            activeClassName="active"
-			/>
-		 </nav>
-		);
-	  }
-
-	renderTickets = (tickets: Ticket[], favorite = false) => {
-
-		const filteredTickets = tickets
-			.filter((t) => (t.title.toLowerCase() + t.content.toLowerCase()).includes(this.state.options.search?.toLowerCase() ?? ''));
-
-		const handleRemoveItem = (ticket: Ticket) => {
-			return this.state.favoriteTickes.filter(item => item.id !== ticket.id);
-			};
-		const handleAddItem = (ticket: Ticket) => {
-			return [ ticket, ...handleRemoveItem(ticket)];
-			};	
-		const toggleFavorite = (ticket: Ticket) => {
-			
-		const favorites = favorite? handleRemoveItem(ticket): handleAddItem(ticket);
-		this.setState((prev)=> ({...prev, favoriteTickes: favorites}))
-		}	
-
-		return (<ul className='tickets'>
-			<TicketsComponent tickets={filteredTickets} favorite={favorite} handleToggle={(t)=>{toggleFavorite(t)}}/>
-		</ul>);
-	}
-
 	onSearch = async (val: string, newPage?: number) => {
 		
 		clearTimeout(this.searchDebounce);
-        let prevOptions =this.state.options;
-        this.setState((prev)=> ({ ...prev,
+
+		this.setState((prev)=> ({ ...prev,
 			options: {
-				...prevOptions,
+				...prev.options,
 				search: val
 			}
 		}));
@@ -156,18 +58,60 @@ export class App extends React.PureComponent<{}> {
 
 	render() {	
 		// const {tickets} = this.state;
+		const handleSelect= async ( val: string ) => {
+			var value = val as ("userEmail" | "creationTime" |  "title");
+			this.setState((prev)=> ({ ...prev,
+				options: {
+					...prev.options,
+					sortBy: value
+				}
+			}));
+
+		   const result = await api.getTickets({...this.state.options, sortBy: value ??  "creationTime" })
+		   this.setState( (prev) =>  ({
+			  ...prev ,ticketsResult: result
+		   })
+		   );
+		  }
+		
+		// Invoke when user click to request another page.
+		const handlePageClick = async (event: { selected: number; }) => {
+			const newOffset = (event.selected * (this.state.ticketsResult?.limit ?? 0)) % (this.state.ticketsResult?.total ?? 1);
+			this.setState( (prev) =>  ({
+			  ...prev ,offset: newOffset
+		   }));
+		   const result = await api.getTickets({...this.state.options, page: event.selected + 1})
+		   this.setState( (prev) =>  ({
+			  ...prev ,ticketsResult: result
+		   })
+		   );
+		  }  
+
+		const handleRemoveItem = (ticket: Ticket) => {
+			return this.state.favoriteTickes.filter(item => item.id !== ticket.id);
+			};
+		const handleAddItem = (ticket: Ticket) => {
+			return [ ticket, ...handleRemoveItem(ticket)];
+			};	
+		const toggleFavorite = (ticket: Ticket, favorite: boolean = false) => {
+			
+		const favorites = favorite? handleRemoveItem(ticket): handleAddItem(ticket);
+		this.setState((prev)=> ({...prev, favoriteTickes: favorites}))
+		}	
 
 		return (<>
 			<h1>Tickets List</h1>
 			<header>
 				<input value={this.state.options.search}  type="search" placeholder="Search..." onChange={(e) => this.onSearch(e.target.value)}/>	
 			</header>
-			{this.sortItems(this.state.options.sortBy ?? "creationTime")}
+			<SortComponent sortBy={this.state.options.sortBy} handleSortChange={handleSelect}   />
 			{this.state.ticketsResult ? <div className='results'>Showing {this.state.ticketsResult.data.length} / {this.state.ticketsResult.total} results</div> : null }	
-			{this.state.ticketsResult ? this.renderTickets(this.state.ticketsResult.data) : <h2>Loading..</h2>}
-			{this.state.ticketsResult && this.paginatedItems (this.state.ticketsResult.limit, this.state.ticketsResult, this.state.offset) }
+			{this.state.ticketsResult ? 
+			<TicketsComponent tickets={this.state.ticketsResult.data} favorite={false} handleToggle={(t)=>{toggleFavorite(t)}}/> : <h2>Loading..</h2>}
+			
+			{this.state.ticketsResult && <PaginateComponent ticketsResult={this.state.ticketsResult} handlePaginateChange={handlePageClick}/> }
             <h1>Favorites Tickets List</h1>
-			{this.state.favoriteTickes.length > 0 ? this.renderTickets(this.state.favoriteTickes, true) : <h2>Add to favorites</h2>}
+			{this.state.favoriteTickes.length ?<TicketsComponent tickets={this.state.favoriteTickes} favorite={true} handleToggle={(t)=>{toggleFavorite(t,true)}}/>  : <h2>Add to favorites</h2>}
 
 		</>)
 	}

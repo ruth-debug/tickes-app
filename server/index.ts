@@ -28,7 +28,7 @@ app.get(APIPath, (req, res) => {
   const skip = (page - 1) * limit;
   const sortBy = req.query.sortBy?.toString() ?? "creationTime"
 
-  const filterData = tempData.filter((t) => (t.title.toLowerCase() + t.content.toLowerCase()).includes(search.toLowerCase())).sort((a: Ticket, b: Ticket)=> (a[sortBy] > b[sortBy]? 1 : (a[sortBy] < b[sortBy]) ? -1 : 0));
+  const filterData = tempData.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()) || t.content.toLowerCase().includes(search.toLowerCase())).sort((a: Ticket, b: Ticket)=> (a[sortBy] > b[sortBy]? 1 : (a[sortBy] < b[sortBy]) ? -1 : 0));
 
   const total = filterData.length;
   const pages = Math.ceil(total / limit);

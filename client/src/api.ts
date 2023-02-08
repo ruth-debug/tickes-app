@@ -29,7 +29,7 @@ export interface FilterProps {
     before?: number;
     after?: number;
     from?: string;
-    sortBy?: "userEmail" | "creationTime" |  "title";
+    sortBy: "userEmail" | "creationTime" |  "title";
 }
 
 export type ApiClient = {

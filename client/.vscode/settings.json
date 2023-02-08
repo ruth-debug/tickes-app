@@ -1,0 +1,13 @@
+{
+    "editor.codeActionsOnSave": { "source.fixAll.eslint": true }, 
+    "eslint.alwaysShowStatus": true, 
+    "files.autoSave": "onFocusChange",
+    "editor.formatOnSave": true,
+    "cSpell.words": [
+        "fnid",
+        "Keychain",
+        "Oriient",
+        "Pressable",
+        "Topbar"
+    ]
+}
